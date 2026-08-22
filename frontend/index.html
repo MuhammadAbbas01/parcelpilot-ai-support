@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>ParcelPilot Internal Ops Assistant</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 30px auto; background:#f7f7f8; }
+  #log { background: white; border-radius: 8px; padding: 16px; min-height: 400px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  .msg { margin: 10px 0; padding: 10px 14px; border-radius: 8px; max-width: 85%; white-space: pre-wrap; }
+  .user { background: #e8f0fe; margin-left: auto; }
+  .bot { background: #f1f1f3; }
+  .tool { font-size: 12px; color: #666; background: #fff8e1; border: 1px solid #f0d878; padding: 4px 8px; border-radius: 6px; margin: 4px 0; }
+  #inputRow { display: flex; gap: 8px; margin-top: 12px; }
+  #inputBox { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #ccc; }
+  button { padding: 10px 16px; border-radius: 6px; border: none; background: #1a73e8; color: white; cursor: pointer; }
+  select { padding: 6px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<h2>ParcelPilot Internal Ops Assistant</h2>
+<a href="/dashboard.html" style="font-size:13px;color:#1a73e8;text-decoration:none;">View proactive issue dashboard &rarr;</a><br><br>
+<label>Role: <select id="role">
+  <option value="support_agent">Support Agent</option>
+  <option value="ops_manager">Ops Manager</option>
+  <option value="admin">Admin</option>
+</select></label>
+<div id="log"></div>
+<div id="inputRow">
+  <input id="inputBox" placeholder="Ask about an order, ticket, or policy..." />
+  <button onclick="send()">Send</button>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

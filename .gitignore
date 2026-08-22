@@ -1,0 +1,18 @@
+# Secrets — never commit
+.env
+
+# Supplied assessment data pack — not ours to redistribute publicly.
+# Required locally to run (see README "Data Pack" section).
+data_pack/
+*.docx
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editor/OS
+.vscode/
+.DS_Store
+Thumbs.db
