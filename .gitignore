@@ -1,9 +1,11 @@
 # Secrets — never commit
 .env
 
-# Supplied assessment data pack — not ours to redistribute publicly.
-# Required locally to run (see README "Data Pack" section).
-data_pack/
+# Note: data_pack/ IS committed — it's the synthetic assessment dataset
+# (see data_pack/ParcelPilot_Assessment_Data.xlsx README sheet: "synthetic
+# dataset created for a hiring assessment"), needed for the hosted demo
+# to actually function. The CalQuity job-description docx is excluded
+# below since that's a real internal hiring document, not test data.
 *.docx
 
 # Python

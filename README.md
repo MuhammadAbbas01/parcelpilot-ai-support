@@ -3,6 +3,9 @@
 **An AI agent for ParcelPilot's internal support & operations team** —
 built for the CalQuity AI Engineer first-round assessment.
 
+🔗 **Live demo:** _deploying — link added shortly_
+🔗 **Repo:** https://github.com/MuhammadAbbas01/parcelpilot-ai-support
+
 A tool-using LLM agent that answers real support questions by reasoning
 across signed customer contracts, current policy documents, product
 known-issues, and live account/order/ticket data — correctly resolving
@@ -72,9 +75,9 @@ root:
 GROQ_API_KEY=your_key_here
 ```
 
-**Data pack:** this repo does not include CalQuity's supplied PDFs/xlsx
-(see *Data Pack* below) — drop the 7 files into `data_pack/` at the
-project root, matching the original filenames.
+**Data pack:** included in this repo under `data_pack/` — it's the
+synthetic assessment dataset (confirmed synthetic in its own README
+sheet), so no manual step is needed to run this locally.
 
 ```bash
 cd backend
@@ -87,18 +90,10 @@ dashboard (requires `ops_manager` or `admin` role, selectable in the
 chat UI's role dropdown).
 
 ### Data Pack
-The assessment's PDFs and spreadsheet are CalQuity's material, not
-redistributed here. Place them at:
-```
-data_pack/
-  01_Support_Policy_v3_CURRENT.pdf
-  02_Support_Policy_v2_DEPRECATED.pdf
-  03_Cancellation_and_Service_Credit_SOP_v4.pdf
-  04_Product_Operations_Guide_and_Known_Issues.pdf
-  05_Northstar_Logistics_Enterprise_Agreement.pdf
-  06_LumenWorks_Service_Agreement.pdf
-  ParcelPilot_Assessment_Data.xlsx
-```
+`data_pack/` in this repo contains the assessment's 6 PDFs and the
+xlsx exactly as supplied — included because the dataset's own README
+sheet identifies it as synthetic data created for this hiring
+assessment, not real customer information.
 `backend/data_loader.py` reads the xlsx directly at startup;
 `tools/document_search.py` contains pre-extracted, authority-ranked
 text from the PDFs (see *Design Decisions* below for why this wasn't
@@ -143,9 +138,10 @@ page load.
   the model name is isolated to one constant in `agent.py` so a swap
   never touches the tool logic. If you see a `model_not_found` error,
   check `console.groq.com/docs/models` and update it there.
-- **Hosting:** designed for free-tier deployment on **Hugging Face
-  Spaces** (Docker SDK) — see `Dockerfile`. Render's free web-service
-  tier also works but sleeps after idle periods.
+- **Hosting:** deployed on **Render's free web-service tier** (Docker
+  runtime — see `Dockerfile`), no card required. Free-tier services
+  spin down after 15 minutes of inactivity; the first request after
+  that takes 30-60 seconds to wake back up, then responds normally.
 
 ---
 
@@ -196,7 +192,7 @@ docs/
   architecture_note.md   Agent/tool design, conflict handling, trade-offs
   product_note.md        Chosen bonus problem, roadmap, scope, one metric
   ai_tool_usage.md        How AI coding tools were used in this build
-data_pack/               (gitignored — see "Data Pack" above)
+data_pack/               Supplied synthetic assessment data (see "Data Pack" above)
 ```
 
 ## AI tool usage
