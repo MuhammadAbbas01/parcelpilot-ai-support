@@ -1,108 +1,114 @@
-# ParcelPilot Internal Ops Assistant
+<div align="center">
 
-**An AI agent for ParcelPilot's internal support & operations team** —
-built for the CalQuity AI Engineer first-round assessment.
+# 📦 ParcelPilot AI Ops Assistant
 
-🔗 **Live demo:** https://extraversive-intendedly-nathalie.ngrok-free.dev
-_(a live tunnel to the app running locally — see "Hosting notes" below for why, and how to run it yourself)_
-🔗 **Repo:** https://github.com/MuhammadAbbas01/parcelpilot-ai-support
+### A tool-using LLM agent for logistics support & operations — built for the CalQuity AI Engineer assessment
 
-A tool-using LLM agent that answers real support questions by reasoning
-across signed customer contracts, current policy documents, product
-known-issues, and live account/order/ticket data — correctly resolving
-conflicts between sources instead of guessing, and requiring explicit
-human confirmation before taking any state-changing action.
+[![Python](https://img.shields.io/badge/python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Groq](https://img.shields.io/badge/LLM-Groq%20%7C%20gpt--oss--120b-F55036)](https://groq.com/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-live%20demo-brightgreen)](#-live-demo)
 
-> **Live example, verified end-to-end:** *"Can Northstar cancel
-> ORD-1001 without a cancellation fee? Explain why."*
-> The agent calls `get_order` → `get_account` → `search_documents`,
-> correctly ranks Northstar's signed Enterprise Agreement above the
-> general Cancellation SOP, and answers **yes — the contract waives
-> the fee regardless of timing, which overrides the SOP's standard
-> 30-minute / ₹250 rule.** See `docs/architecture_note.md` for the
-> full tool-trace.
+**[🚀 Live Demo](#-live-demo)** · **[🧪 Test It Yourself](docs/test_prompts.md)** · **[🏗 Architecture](#-architecture)** · **[📋 Docs](#-documentation)**
+
+</div>
 
 ---
 
-## Why this isn't just a wrapper around an LLM
+## Why this isn't just an LLM wrapper
 
-Three things this build treats as first-class, not afterthoughts:
+Most "AI support agent" demos are a system prompt bolted onto a chat
+window. This one treats three things as load-bearing, not decoration:
 
-1. **Source authority is data, not a prompt suggestion.** Every
-   document has a rank (`contract` > `policy`/`sop` > `product_doc`);
-   deprecated documents are filtered out of retrieval entirely — the
-   model can't accidentally cite them even if it wanted to.
-2. **Access control lives in the tool layer.** Role checks happen
-   inside `tools/structured_data.py`, not just in the system prompt —
-   so a prompt-injection attempt against the model still can't reach
-   data it shouldn't.
-3. **State-changing actions are structurally two-phase.**
-   `propose_action` computes what *would* happen and returns a
-   one-time token; `execute_action` requires that exact token. There
-   is no code path where the model can skip confirmation, even if it
-   "decides" to.
+| | |
+|---|---|
+| 🔒 **Authority is data, not a suggestion** | Every document is ranked (`contract` > `policy`/`sop` > `product_doc`); deprecated docs are filtered out of retrieval entirely — the model literally cannot cite them, prompt or no prompt. |
+| 🛡 **Access control lives in the tool layer** | Role checks run inside the tool functions, not the system prompt — a prompt-injection attempt still can't reach data it shouldn't. |
+| ✋ **Actions are structurally two-phase** | `propose_action` computes what *would* happen and returns a one-time token; `execute_action` requires that exact token. There is no code path that skips confirmation. |
+
+> **Verified live:** *"Can Northstar cancel ORD-1001 without a
+> cancellation fee?"* → the agent chains `get_order` →
+> `get_account` → `search_documents`, correctly ranks Northstar's
+> signed contract above the general SOP, and answers **yes — the
+> fee is waived regardless of timing.** Full tool-trace in
+> [`docs/architecture_note.md`](docs/architecture_note.md).
 
 ---
 
-## What's included
+## 🚀 Live Demo
 
-| Requirement | Where |
+**https://extraversive-intendedly-nathalie.ngrok-free.dev**
+
+This is a live tunnel to the app running locally — not a permanent
+cloud deployment, and there's a reason for that worth two sentences:
+by mid-2026, every major free-tier PaaS for Docker hosting closed its
+doors (Hugging Face → PRO-only, Render → card verification, Koyeb →
+closed to new signups, Fly.io → no free tier since 2024). Rather than
+put a card on file for a hiring assessment, the app runs locally with
+a public tunnel in front — genuinely free, genuinely live. Full
+reasoning and how to spin up your own link in **[Hosting
+notes](#-hosting-notes)**.
+
+**Don't know what to ask it?** → **[docs/test_prompts.md](docs/test_prompts.md)**
+has 8 ready-to-paste prompts, each targeting a specific capability
+(multi-step reasoning, contract-vs-policy conflicts, the
+confirm-before-action flow, access control, and more) — every one
+verified working against the real data before being written down.
+
+---
+
+## ✅ What's included
+
+| Assessment requirement | Where it lives |
 |---|---|
 | Natural-language chatbot | `frontend/index.html` + `backend/agent.py` |
 | Document retrieval tool | `tools/document_search.py` |
-| Structured-data/calc tool | `tools/structured_data.py` |
+| Structured-data / calculation tool | `tools/structured_data.py` |
 | State-changing action tool | `tools/actions.py` |
-| Confirm-before-action | Two-phase `propose_action`/`execute_action` |
-| Multi-step reasoning | Verified: order → account → contract → SOP → answer |
-| Access control | Role checks in the data layer, not the prompt |
-| Chat interface showing tool use | Live tool-call trace rendered inline |
-| **Bonus — Proactive Issue Detection** | `backend/insights.py` + `/dashboard.html` |
+| Confirm-before-action | Two-phase `propose_action` → `execute_action` |
+| Multi-step, multi-source reasoning | Verified: order → account → contract → SOP → answer |
+| Access control | Role checks in the data layer, not just the prompt |
+| Chat UI showing live tool use | Tool-call trace rendered inline, in real time |
+| **Bonus: Proactive Issue Detection** | `backend/insights.py` + `/dashboard.html` |
 
 ---
 
-## Quick start
+## 🏁 Quick start
 
 ```bash
-git clone <this-repo-url>
-cd ParcelPilot_AI_Support
+git clone https://github.com/MuhammadAbbas01/parcelpilot-ai-support.git
+cd parcelpilot-ai-support
 pip install -r requirements.txt
 ```
 
-Get a free Groq API key at [console.groq.com](https://console.groq.com)
-(no credit card required), then create a `.env` file in the project
-root:
+Get a **free** Groq API key at [console.groq.com](https://console.groq.com)
+(no card required), then create `.env` in the project root:
 
 ```
 GROQ_API_KEY=your_key_here
 ```
 
-**Data pack:** included in this repo under `data_pack/` — it's the
-synthetic assessment dataset (confirmed synthetic in its own README
-sheet), so no manual step is needed to run this locally.
+> The synthetic data pack (`data_pack/`) is already included in this
+> repo — no manual download step needed.
 
 ```bash
 cd backend
 uvicorn main:app --reload --port 8000
 ```
 
-Open **http://localhost:8000** for the chatbot, or
-**http://localhost:8000/dashboard.html** for the proactive issue
-dashboard (requires `ops_manager` or `admin` role, selectable in the
-chat UI's role dropdown).
+- **http://localhost:8000** — the chatbot
+- **http://localhost:8000/dashboard.html** — proactive issue dashboard
+  (pick `ops_manager` or `admin` in the role dropdown)
 
-### Data Pack
-`data_pack/` in this repo contains the assessment's 6 PDFs and the
-xlsx exactly as supplied — included because the dataset's own README
-sheet identifies it as synthetic data created for this hiring
-assessment, not real customer information.
-`backend/data_loader.py` reads the xlsx directly at startup;
-`tools/document_search.py` contains pre-extracted, authority-ranked
-text from the PDFs (see *Design Decisions* below for why this wasn't
-built as a vector index).
+Want a public link like the live demo above?
+```bash
+ngrok http 8000
+```
 
 ---
 
-## Architecture
+## 🏗 Architecture
 
 ```
 User (chat UI or dashboard)
@@ -128,86 +134,77 @@ User (chat UI or dashboard)
 ```
 
 `backend/insights.py` runs independently of the chat agent — a
-deterministic, rule-based pass over the same underlying data — and
-powers the proactive issue dashboard without spending an LLM call per
-page load.
+deterministic, rule-based pass over the same data — and powers the
+proactive issue dashboard without spending an LLM call per page load.
 
-## Model & hosting notes
+## 🔌 Hosting notes
 
-- **LLM:** Groq (`openai/gpt-oss-120b`), free tier, OpenAI-compatible
-  tool-calling API. Groq's available model lineup changes over time —
-  the model name is isolated to one constant in `agent.py` so a swap
-  never touches the tool logic. If you see a `model_not_found` error,
-  check `console.groq.com/docs/models` and update it there.
-- **Hosting:** the live demo link above is an **ngrok tunnel to the
-  app running locally**, not a persistent cloud deployment. This was
-  a deliberate call, not an oversight: as of mid-2026, every major
-  free-tier PaaS option for a Docker/FastAPI backend has closed —
-  Hugging Face Spaces now requires a PRO subscription for Docker
-  hosting, Render's free web-service tier requests card verification
-  on new accounts despite its own marketing, Koyeb closed its free
-  tier to new signups after its February 2026 acquisition, and Fly.io
-  dropped its free tier entirely back in 2024. Rather than add a paid
-  card to a hiring-assessment side project, the app runs locally with
-  a public tunnel in front of it — genuinely free, genuinely live,
-  fully functional, with the trade-off that the link above is only
-  reachable while the tunnel is running.
-  **To run it yourself:** follow *Quick start* above, then run
-  `ngrok http 8000` in a second terminal (free ngrok account, no
-  card) — you'll get your own live public link in seconds.
+The live demo link is an **ngrok tunnel** to the app running locally.
+As of mid-2026 every major free-tier Docker/FastAPI host has closed:
+Hugging Face Spaces now requires PRO for Docker, Render's free tier
+asks new accounts for card verification despite its own marketing,
+Koyeb closed free signups after its Feb 2026 Mistral AI acquisition,
+and Fly.io dropped its free tier back in 2024. This was a deliberate
+trade-off, not an oversight — see `docs/product_note.md` for the full
+reasoning. The model, `openai/gpt-oss-120b` on Groq's free tier, is
+isolated to one constant in `agent.py` so a lineup change is a
+one-line fix.
+
+## 🧠 Design decisions
+
+- **Keyword search, not a vector index**, for the 6 short (one-page)
+  PDFs — right-sized for the scale; the authority-ranking logic sits
+  *around* retrieval so swapping in embeddings later is a one-function
+  change.
+- **"Business hours/days" simplified to flat hour counts** in SLA math
+  — documented gap for production use.
+- **In-memory sessions** — resets on restart, fine for a demo.
+- **Internal-only, not customer-facing** — deliberate depth-over-breadth
+  choice; same tool layer would support a customer-facing agent with
+  account-scoped instead of role-scoped access.
+
+Full reasoning in [`docs/architecture_note.md`](docs/architecture_note.md)
+and [`docs/product_note.md`](docs/product_note.md).
 
 ---
 
-## Design decisions worth knowing about
-
-- **Keyword search over a vector index for documents.** The supplied
-  pack is 6 short (one-page) PDFs — an embedding pipeline would add
-  latency and infrastructure for zero retrieval-quality benefit at
-  this scale. The `search_documents` interface is stable, though: the
-  authority-ranking and deprecated-filtering logic sits *around* the
-  retrieval call, so swapping in a vector store later is a one-function
-  change, not a redesign.
-- **"Business hours/days" simplified to flat hour counts** (1 business
-  day = 8h) in SLA and cluster calculations. Correct trade-off for a
-  synthetic snapshot dataset; would need a real business calendar
-  (weekends, holidays, LumenWorks' "no after-hours coverage" clause)
-  for production use — flagged explicitly in `docs/product_note.md`.
-- **In-memory session storage.** Conversation history resets on
-  restart. Right call for a single-instance demo; would move to
-  Redis/Postgres for anything multi-instance or production-grade.
-- **Internal-only, not customer-facing.** The brief allows either or
-  both; this build goes deep on the internal ops context (including
-  the proactive-detection bonus) rather than building both contexts
-  shallowly. A customer-facing agent would reuse the same tool layer
-  with account-scoped access instead of role-scoped.
-
-Full reasoning for all of the above — including what's explicitly out
-of scope and why — is in `docs/architecture_note.md` and
-`docs/product_note.md`.
-
-## Project structure
+## 📁 Project structure
 
 ```
 backend/
-  models.py          Pydantic schemas (Account, Order, Ticket, UserContext)
-  data_loader.py      Loads real data from the xlsx at startup
-  agent.py            Groq tool-use loop + system prompt (authority rules)
-  insights.py          Proactive issue detection (SLA risk, clusters, anomalies)
-  main.py             FastAPI app, mocked auth, routes
+  models.py             Pydantic schemas (Account, Order, Ticket, UserContext)
+  data_loader.py         Loads real data from the xlsx at startup
+  agent.py                Groq tool-use loop + system prompt (authority rules)
+  insights.py               Proactive issue detection (SLA risk, clusters, anomalies)
+  main.py                  FastAPI app, mocked auth, routes
   tools/
-    document_search.py   Authority-ranked retrieval over the PDF pack
-    structured_data.py   Account/order/ticket lookups + calculations
-    actions.py            Two-phase state-changing action tool
+    document_search.py       Authority-ranked retrieval over the PDF pack
+    structured_data.py       Account/order/ticket lookups + calculations
+    actions.py                 Two-phase state-changing action tool
 frontend/
-  index.html / app.js       Chat UI, shows live tool-call trace
-  dashboard.html / .js       Proactive issue detection dashboard
+  index.html / app.js        Chat UI, live tool-call trace
+  dashboard.html / .js         Proactive issue detection dashboard
 docs/
-  architecture_note.md   Agent/tool design, conflict handling, trade-offs
-  product_note.md        Chosen bonus problem, roadmap, scope, one metric
-  ai_tool_usage.md        How AI coding tools were used in this build
-data_pack/               Supplied synthetic assessment data (see "Data Pack" above)
+  architecture_note.md       Agent/tool design, conflict handling, trade-offs
+  product_note.md              Chosen bonus problem, roadmap, scope, one metric
+  ai_tool_usage.md               How AI coding tools were used in this build
+  test_prompts.md                  8 verified prompts to try against the live demo
+data_pack/                Supplied synthetic assessment data
 ```
 
-## AI tool usage
+## 📋 Documentation
 
-See `docs/ai_tool_usage.md`.
+| Doc | Covers |
+|---|---|
+| [`docs/architecture_note.md`](docs/architecture_note.md) | Agent design, tool design, source-conflict handling, trade-offs |
+| [`docs/product_note.md`](docs/product_note.md) | Chosen bonus problem, what's next, what's out of scope, one success metric |
+| [`docs/ai_tool_usage.md`](docs/ai_tool_usage.md) | How AI coding tools were used in this build |
+| [`docs/test_prompts.md`](docs/test_prompts.md) | 8 verified prompts covering every core capability |
+
+---
+
+<div align="center">
+
+Built by **Muhammad Abbas** for the CalQuity AI Engineer assessment.
+
+</div>

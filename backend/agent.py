@@ -55,7 +55,8 @@ TOOLS = [
           "Returns results ranked by authority (contract > policy/SOP > product doc), "
           "excluding deprecated documents.",
           {"query": {"type": "string"},
-           "account_id": {"type": "string", "description": "Restricts contract results to this account"}},
+           "account_id": {"type": ["string", "null"],
+                          "description": "Restricts contract results to this account. Pass null if not scoping to an account."}},
           ["query"]),
     _tool("get_account", "Look up an account's plan tier and whether it has a custom agreement.",
           {"account_id": {"type": "string"}}, ["account_id"]),
