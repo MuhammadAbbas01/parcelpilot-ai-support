@@ -3,7 +3,8 @@
 **An AI agent for ParcelPilot's internal support & operations team** —
 built for the CalQuity AI Engineer first-round assessment.
 
-🔗 **Live demo:** _deploying — link added shortly_
+🔗 **Live demo:** https://extraversive-intendedly-nathalie.ngrok-free.dev
+_(a live tunnel to the app running locally — see "Hosting notes" below for why, and how to run it yourself)_
 🔗 **Repo:** https://github.com/MuhammadAbbas01/parcelpilot-ai-support
 
 A tool-using LLM agent that answers real support questions by reasoning
@@ -138,10 +139,22 @@ page load.
   the model name is isolated to one constant in `agent.py` so a swap
   never touches the tool logic. If you see a `model_not_found` error,
   check `console.groq.com/docs/models` and update it there.
-- **Hosting:** deployed on **Render's free web-service tier** (Docker
-  runtime — see `Dockerfile`), no card required. Free-tier services
-  spin down after 15 minutes of inactivity; the first request after
-  that takes 30-60 seconds to wake back up, then responds normally.
+- **Hosting:** the live demo link above is an **ngrok tunnel to the
+  app running locally**, not a persistent cloud deployment. This was
+  a deliberate call, not an oversight: as of mid-2026, every major
+  free-tier PaaS option for a Docker/FastAPI backend has closed —
+  Hugging Face Spaces now requires a PRO subscription for Docker
+  hosting, Render's free web-service tier requests card verification
+  on new accounts despite its own marketing, Koyeb closed its free
+  tier to new signups after its February 2026 acquisition, and Fly.io
+  dropped its free tier entirely back in 2024. Rather than add a paid
+  card to a hiring-assessment side project, the app runs locally with
+  a public tunnel in front of it — genuinely free, genuinely live,
+  fully functional, with the trade-off that the link above is only
+  reachable while the tunnel is running.
+  **To run it yourself:** follow *Quick start* above, then run
+  `ngrok http 8000` in a second terminal (free ngrok account, no
+  card) — you'll get your own live public link in seconds.
 
 ---
 
