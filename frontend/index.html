@@ -1,34 +1,194 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>ParcelPilot Internal Ops Assistant</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ParcelPilot Ops Assistant</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
 <style>
-  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 30px auto; background:#f7f7f8; }
-  #log { background: white; border-radius: 8px; padding: 16px; min-height: 400px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
-  .msg { margin: 10px 0; padding: 10px 14px; border-radius: 8px; max-width: 85%; white-space: pre-wrap; }
-  .user { background: #e8f0fe; margin-left: auto; }
-  .bot { background: #f1f1f3; }
-  .tool { font-size: 12px; color: #666; background: #fff8e1; border: 1px solid #f0d878; padding: 4px 8px; border-radius: 6px; margin: 4px 0; }
-  #inputRow { display: flex; gap: 8px; margin-top: 12px; }
-  #inputBox { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #ccc; }
-  button { padding: 10px 16px; border-radius: 6px; border: none; background: #1a73e8; color: white; cursor: pointer; }
-  select { padding: 6px; margin-bottom: 10px; }
+  :root {
+    --bg: #f4f5f7;
+    --panel: #ffffff;
+    --border: #e4e6eb;
+    --text: #1c1e21;
+    --muted: #65676b;
+    --accent: #4f46e5;
+    --accent-light: #eef0ff;
+    --user-bubble: #4f46e5;
+    --user-text: #ffffff;
+    --bot-bubble: #ffffff;
+    --tool-bg: #fffaf0;
+    --tool-border: #f0d78a;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    margin: 0;
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand .logo {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .brand h1 { font-size: 16px; margin: 0; font-weight: 700; }
+  .brand .sub { font-size: 12px; color: var(--muted); margin: 0; }
+  .header-right { display: flex; align-items: center; gap: 14px; }
+  .header-right a {
+    font-size: 13px; color: var(--accent); text-decoration: none; font-weight: 600;
+  }
+  .header-right a:hover { text-decoration: underline; }
+  select {
+    padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--panel); font-size: 13px; color: var(--text); font-weight: 600;
+  }
+
+  main {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    justify-content: center;
+  }
+  #log {
+    width: 100%;
+    max-width: 780px;
+    padding: 24px 20px 12px;
+  }
+  .empty-state {
+    color: var(--muted);
+    text-align: center;
+    margin-top: 60px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .row { display: flex; margin-bottom: 14px; }
+  .row.user { justify-content: flex-end; }
+  .row.bot { justify-content: flex-start; }
+  .bubble {
+    max-width: 88%;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    font-size: 14.5px;
+    line-height: 1.55;
+  }
+  .row.user .bubble {
+    background: var(--user-bubble);
+    color: var(--user-text);
+    border-bottom-right-radius: 4px;
+  }
+  .row.bot .bubble {
+    background: var(--bot-bubble);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .bubble p:first-child { margin-top: 0; }
+  .bubble p:last-child { margin-bottom: 0; }
+  .bubble table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13.5px; }
+  .bubble th, .bubble td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+  .bubble th { background: #fafafa; font-weight: 700; }
+  .bubble code {
+    background: #f1f2f5; padding: 1px 5px; border-radius: 4px; font-size: 0.9em;
+  }
+  .bubble strong { font-weight: 700; }
+
+  .tool-trace { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; max-width: 88%; }
+  .tool-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--tool-bg); border: 1px solid var(--tool-border);
+    border-radius: 8px; padding: 5px 10px; font-size: 12px; color: #7a5c00;
+    width: fit-content;
+  }
+
+  .thinking { color: var(--muted); font-size: 13px; font-style: italic; padding: 4px 0; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    padding: 14px 20px;
+    display: flex;
+    justify-content: center;
+  }
+  .input-wrap {
+    width: 100%;
+    max-width: 780px;
+    display: flex;
+    gap: 10px;
+  }
+  #inputBox {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    font-size: 14.5px;
+    outline: none;
+  }
+  #inputBox:focus { border-color: var(--accent); }
+  #sendBtn {
+    padding: 12px 22px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent);
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  #sendBtn:hover { background: #4338ca; }
+  #sendBtn:disabled { background: #b7b8bd; cursor: not-allowed; }
 </style>
 </head>
 <body>
-<h2>ParcelPilot Internal Ops Assistant</h2>
-<a href="/dashboard.html" style="font-size:13px;color:#1a73e8;text-decoration:none;">View proactive issue dashboard &rarr;</a><br><br>
-<label>Role: <select id="role">
-  <option value="support_agent">Support Agent</option>
-  <option value="ops_manager">Ops Manager</option>
-  <option value="admin">Admin</option>
-</select></label>
-<div id="log"></div>
-<div id="inputRow">
-  <input id="inputBox" placeholder="Ask about an order, ticket, or policy..." />
-  <button onclick="send()">Send</button>
-</div>
+<header>
+  <div class="brand">
+    <div class="logo">📦</div>
+    <div>
+      <h1>ParcelPilot Ops Assistant</h1>
+      <p class="sub">Internal support &amp; operations agent</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <a href="/dashboard.html">Proactive issue dashboard →</a>
+    <select id="role">
+      <option value="ops_manager">Ops Manager</option>
+      <option value="support_agent">Support Agent</option>
+      <option value="admin">Admin</option>
+    </select>
+  </div>
+</header>
+<main>
+  <div id="log">
+    <div class="empty-state" id="emptyState">
+      Ask about an order, ticket, contract, or policy — try:<br>
+      <em>"Can Northstar cancel ORD-1001 without a cancellation fee?"</em>
+    </div>
+  </div>
+</main>
+<footer>
+  <div class="input-wrap">
+    <input id="inputBox" placeholder="Ask about an order, ticket, or policy..." autocomplete="off" />
+    <button id="sendBtn" onclick="send()">Send</button>
+  </div>
+</footer>
 <script src="app.js"></script>
 </body>
 </html>

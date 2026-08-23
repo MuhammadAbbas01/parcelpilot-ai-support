@@ -1,40 +1,61 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>ParcelPilot Ops Dashboard</title>
 <style>
-  body { font-family: system-ui, sans-serif; max-width: 900px; margin: 30px auto; background:#f7f7f8; }
-  h2 { margin-bottom: 4px; }
-  .snapshot { color: #666; font-size: 13px; margin-bottom: 20px; }
-  .card { background: white; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
-  .card h3 { margin-top: 0; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eee; }
-  .breached { color: #c0392b; font-weight: 600; }
-  .approaching { color: #d68910; font-weight: 600; }
-  .on_track { color: #27ae60; }
-  .multi { background: #fff3cd; }
-  a.back { display:inline-block; margin-bottom:14px; color:#1a73e8; text-decoration:none; }
+  :root {
+    --bg: #f4f5f7; --panel: #ffffff; --border: #e4e6eb;
+    --text: #1c1e21; --muted: #65676b; --accent: #4f46e5;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text);
+    max-width: 980px; margin: 0 auto; padding: 28px 20px 60px;
+  }
+  a.back { display:inline-flex; align-items:center; gap:6px; margin-bottom:18px; color:var(--accent); text-decoration:none; font-weight:600; font-size:14px; }
+  a.back:hover { text-decoration: underline; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .snapshot { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  }
+  .card h2 { margin: 0 0 4px; font-size: 15px; }
+  .card .desc { color: var(--muted); font-size: 12.5px; margin: 0 0 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.02em; }
+  .badge { display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:700; }
+  .breached { background:#fde8e8; color:#c0392b; }
+  .approaching { background:#fff3cd; color:#8a6300; }
+  .on_track { background:#e6f7ec; color:#1e7d3a; }
+  .multi-row { background:#fff9e6; }
+  .empty { color: var(--muted); font-size: 13px; padding: 8px 0; }
 </style>
 </head>
 <body>
-<a class="back" href="/">&larr; Back to chat</a>
-<h2>ParcelPilot Ops Dashboard</h2>
+<a class="back" href="/">← Back to chat</a>
+<h1>ParcelPilot Ops Dashboard</h1>
 <div class="snapshot" id="snapshot">Loading…</div>
 
 <div class="card">
-  <h3>SLA Risk (open tickets)</h3>
+  <h2>SLA Risk — open tickets</h2>
+  <p class="desc">Ranked by elapsed time vs. first-response target (breached first)</p>
   <table id="slaTable"><thead><tr><th>Ticket</th><th>Account</th><th>Subject</th><th>Severity</th><th>Elapsed / Target (hrs)</th><th>Status</th></tr></thead><tbody></tbody></table>
 </div>
 
 <div class="card">
-  <h3>Issue Clusters</h3>
+  <h2>Issue Clusters</h2>
+  <p class="desc">Open tickets grouped by shared topic — highlighted rows affect multiple customers</p>
   <table id="clusterTable"><thead><tr><th>Topic</th><th>Tickets</th><th>Accounts affected</th><th>Multi-customer?</th></tr></thead><tbody></tbody></table>
 </div>
 
 <div class="card">
-  <h3>Order Anomalies (carrier-fault, still pending)</h3>
+  <h2>Order Anomalies</h2>
+  <p class="desc">Carrier-fault orders with pickup still pending — surfaced before a complaint is filed</p>
   <table id="orderTable"><thead><tr><th>Order</th><th>Account</th><th>Carrier</th><th>Hours late</th><th>Status</th></tr></thead><tbody></tbody></table>
 </div>
 
