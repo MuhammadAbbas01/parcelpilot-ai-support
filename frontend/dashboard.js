@@ -1,15 +1,39 @@
 async function load() {
+  const role = document.getElementById("role").value;
+  const content = document.getElementById("dashboardContent");
   const res = await fetch("/api/insights", {
-    headers: { "X-User-Role": "ops_manager", "X-User-Name": "demo-user" }
+    headers: { "X-User-Role": role, "X-User-Name": "demo-user" }
   });
+
   if (!res.ok) {
-    document.getElementById("snapshot").textContent =
-      "Access denied — this view requires ops_manager or admin role.";
+    document.getElementById("snapshot").textContent = "";
+    content.innerHTML = '<div class="denied">Access denied (HTTP ' + res.status +
+      ') — the "' + role + '" role does not have permission to view this dashboard. ' +
+      'Only ops_manager or admin can access it.</div>';
     return;
   }
+
   const data = await res.json();
   document.getElementById("snapshot").textContent =
     "Dataset snapshot (reference \"now\"): " + data.dataset_snapshot;
+
+  content.innerHTML = `
+    <div class="card">
+      <h2>SLA Risk — open tickets</h2>
+      <p class="desc">Ranked by elapsed time vs. first-response target (breached first)</p>
+      <table id="slaTable"><thead><tr><th>Ticket</th><th>Account</th><th>Subject</th><th>Severity</th><th>Elapsed / Target (hrs)</th><th>Status</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="card">
+      <h2>Issue Clusters</h2>
+      <p class="desc">Open tickets grouped by shared topic — highlighted rows affect multiple customers</p>
+      <table id="clusterTable"><thead><tr><th>Topic</th><th>Tickets</th><th>Accounts affected</th><th>Multi-customer?</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="card">
+      <h2>Order Anomalies</h2>
+      <p class="desc">Carrier-fault orders with pickup still pending — surfaced before a complaint is filed</p>
+      <table id="orderTable"><thead><tr><th>Order</th><th>Account</th><th>Carrier</th><th>Hours late</th><th>Status</th></tr></thead><tbody></tbody></table>
+    </div>
+  `;
 
   const slaBody = document.querySelector("#slaTable tbody");
   if (!data.sla_risk.length) {
@@ -47,3 +71,4 @@ async function load() {
   });
 }
 load();
+document.getElementById("role").addEventListener("change", load);

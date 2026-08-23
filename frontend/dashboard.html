@@ -34,13 +34,27 @@
   .on_track { background:#e6f7ec; color:#1e7d3a; }
   .multi-row { background:#fff9e6; }
   .empty { color: var(--muted); font-size: 13px; padding: 8px 0; }
+  .top-row { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom: 6px; }
+  select {
+    padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--panel); font-size: 13px; color: var(--text); font-weight: 600;
+  }
+  .denied { color:#c0392b; background:#fde8e8; border:1px solid #f3b6b6; padding:14px 16px; border-radius:10px; font-size:14px; }
 </style>
 </head>
 <body>
-<a class="back" href="/">← Back to chat</a>
+<div class="top-row">
+  <a class="back" href="/">← Back to chat</a>
+  <select id="role">
+    <option value="ops_manager">Ops Manager</option>
+    <option value="support_agent">Support Agent</option>
+    <option value="admin">Admin</option>
+  </select>
+</div>
 <h1>ParcelPilot Ops Dashboard</h1>
 <div class="snapshot" id="snapshot">Loading…</div>
 
+<div id="dashboardContent">
 <div class="card">
   <h2>SLA Risk — open tickets</h2>
   <p class="desc">Ranked by elapsed time vs. first-response target (breached first)</p>
@@ -57,6 +71,7 @@
   <h2>Order Anomalies</h2>
   <p class="desc">Carrier-fault orders with pickup still pending — surfaced before a complaint is filed</p>
   <table id="orderTable"><thead><tr><th>Order</th><th>Account</th><th>Carrier</th><th>Hours late</th><th>Status</th></tr></thead><tbody></tbody></table>
+</div>
 </div>
 
 <script src="dashboard.js"></script>
