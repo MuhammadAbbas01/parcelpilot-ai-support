@@ -26,14 +26,38 @@ those questions correctly by treating source authority as structured
 data rather than something the model has to infer from a prompt, and
 it refuses to guess when the sources don't cover a case.
 
-**Verified example:** *"Can Northstar cancel ORD-1001 without a
-cancellation fee?"* — the agent calls `get_order` → `get_account` →
-`search_documents`, ranks Northstar's signed contract above the
-general cancellation SOP, and correctly answers **yes, the contract
-waives the fee regardless of timing.** Full trace in
-[`docs/architecture_note.md`](docs/architecture_note.md).
+## See it work — a real, verified exchange
 
-## What makes this more than a prompt
+This is unedited output from the live agent, reasoning across an order
+lookup, an account lookup, and a document search in one turn.
+
+> **Q: Can Northstar cancel ORD-1001 without a cancellation fee? Explain why.**
+>
+> 🔧 `get_order(order_id: "ORD-1001")`
+> 🔧 `get_account(account_id: "ACCT-001")`
+> 🔧 `search_documents(account_id: "ACCT-001", query: "cancellation fee")`
+>
+> **Yes — Northstar can cancel ORD-1001 with no cancellation fee.**
+>
+> | Source | Authority | What it says |
+> |---|---|---|
+> | Northstar Enterprise Agreement | Contract (highest) | *"Northstar may cancel any BOOKED shipment before pickup with NO cancellation fee, regardless of how long ago it was booked."* |
+> | Cancellation & Service-Credit SOP v4 | Policy (lower) | Free cancellation only within 30 minutes; ₹250 fee after — unless a signed agreement waives it. |
+>
+> The contract is specific to this account and, per the authority
+> hierarchy, overrides the general SOP. ORD-1001 is BOOKED and not yet
+> picked up, which matches the contract's waiver condition — so the
+> cancellation fee does not apply.
+
+The agent chose the right three tools on its own, ranked a signed
+contract above a general policy without being told which one wins for
+*this specific question*, and gave a correct, explainable answer.
+Seven more scenarios like this — including one that deliberately tests
+whether it can be fooled by an outdated document — are in
+[`docs/test_prompts.md`](docs/test_prompts.md); try them yourself
+against the live demo.
+
+## What makes this more than a wrapper
 
 - **Authority is enforced in code, not suggested in a prompt.**
   Documents are ranked (`contract` > `policy`/`sop` > `product_doc`)
@@ -47,6 +71,35 @@ waives the fee regardless of timing.** Full trace in
   token; `execute_action` requires that exact token. There's no code
   path that skips confirmation.
 
+## Architecture
+
+```mermaid
+flowchart TD
+    U["User<br/>(chat UI or dashboard)"] --> API["FastAPI — main.py<br/>mocked auth via X-User-Role header"]
+    API --> Agent["Agent loop — agent.py<br/>Groq tool-use, up to 6 rounds/turn"]
+
+    Agent <--> LLM["Groq LLM<br/>openai/gpt-oss-120b"]
+
+    Agent --> DocTool["search_documents /<br/>search_deprecated_history"]
+    Agent --> DataTool["get_account / get_order /<br/>calc_late_pickup_hours / etc."]
+    Agent --> ActTool["propose_action /<br/>execute_action"]
+
+    DocTool --> Docs[("6 PDFs<br/>authority-ranked")]
+    DataTool --> XLSX[("xlsx: accounts,<br/>orders, tickets")]
+    ActTool --> Log[("Action log<br/>two-phase confirm")]
+
+    Dash["Dashboard<br/>/dashboard.html"] --> Insights["insights.py<br/>rule-based, no LLM call"]
+    Insights --> XLSX
+
+    style Agent fill:#4f46e5,color:#fff
+    style LLM fill:#F55036,color:#fff
+    style Insights fill:#7c3aed,color:#fff
+```
+
+`backend/insights.py` runs independently of the chat agent — a
+deterministic, rule-based pass over the same underlying data — so the
+proactive issue dashboard doesn't spend an LLM call on every page load.
+
 ## What's included
 
 | Assessment requirement | Where it lives |
@@ -56,7 +109,7 @@ waives the fee regardless of timing.** Full trace in
 | Structured-data / calculation tool | `tools/structured_data.py` |
 | State-changing action tool | `tools/actions.py` |
 | Confirm-before-action | Two-phase `propose_action` → `execute_action` |
-| Multi-step, multi-source reasoning | Verified: order → account → contract → SOP → answer |
+| Multi-step, multi-source reasoning | Verified above: order → account → contract → SOP → answer |
 | Access control | Role checks in the data layer, not just the prompt |
 | Chat UI showing live tool use | Tool-call trace rendered inline, in real time |
 | Bonus: proactive issue detection | `backend/insights.py` + `/dashboard.html` |
@@ -91,36 +144,6 @@ uvicorn main:app --reload --port 8000
 To get a public link like the live demo above, run `ngrok http 8000`
 in a second terminal (free ngrok account, no card).
 
-## Architecture
-
-```
-User (chat UI or dashboard)
-        |
-        v
-  FastAPI (main.py) -- mocked auth via X-User-Role / X-User-Name headers
-        |
-        v
-  Agent loop (agent.py) -- Groq tool-use API, up to 6 tool rounds/turn
-        |
-        |-- search_documents / search_deprecated_history
-        |     -> tools/document_search.py: authority-ranked text
-        |        from the 6 supplied PDFs
-        |
-        |-- get_account / get_order / get_tickets_for_account /
-        |   get_all_open_tickets / calc_late_pickup_hours /
-        |   calc_minutes_since_booking / get_dataset_snapshot_time
-        |     -> tools/structured_data.py: role-checked access to
-        |        data loaded from the xlsx via data_loader.py
-        |
-        `-- propose_action / execute_action
-              -> tools/actions.py: two-phase confirm-before-write
-```
-
-`backend/insights.py` runs independently of the chat agent — a
-deterministic, rule-based pass over the same underlying data — and
-powers the proactive issue dashboard without spending an LLM call on
-every page load.
-
 ## Hosting
 
 The live demo link above is an **ngrok tunnel to the app running
@@ -135,10 +158,6 @@ card on file for a hiring-assessment side project, the app runs
 locally behind a free tunnel — genuinely live, genuinely free, with
 the honest trade-off that it's only reachable while the tunnel process
 is running. Full reasoning in [`docs/product_note.md`](docs/product_note.md).
-
-The LLM is Groq's `openai/gpt-oss-120b` on their free tier. Groq's
-model lineup changes over time; the model name is isolated to one
-constant in `backend/agent.py`, so a lineup change is a one-line fix.
 
 ## Design decisions
 
@@ -171,13 +190,19 @@ Full reasoning for each of these is in
 | `backend/tools/document_search.py` | Authority-ranked retrieval over the PDF pack |
 | `backend/tools/structured_data.py` | Account/order/ticket lookups and calculations |
 | `backend/tools/actions.py` | Two-phase state-changing action tool |
-| `frontend/index.html`, `app.js` | Chat UI with live tool-call trace |
+| `frontend/index.html`, `app.js` | Chat UI with live tool-call trace and markdown rendering |
 | `frontend/dashboard.html`, `dashboard.js` | Proactive issue detection dashboard |
-| `docs/architecture_note.md` | Agent/tool design, conflict handling, trade-offs |
-| `docs/product_note.md` | Chosen bonus problem, roadmap, scope, one success metric |
-| `docs/ai_tool_usage.md` | How AI coding tools were used in this build |
-| `docs/test_prompts.md` | 8 verified prompts covering every core capability |
+| `docs/` | Architecture note, product note, AI tool usage note, test prompts — see [Documentation](#documentation) below |
 | `data_pack/` | Supplied synthetic assessment data |
+
+## Documentation
+
+| Doc | Covers |
+|---|---|
+| [`docs/architecture_note.md`](docs/architecture_note.md) | Agent design, tool design, source-conflict handling, trade-offs |
+| [`docs/product_note.md`](docs/product_note.md) | Chosen bonus problem, what's next, what's out of scope, one metric |
+| [`docs/ai_tool_usage.md`](docs/ai_tool_usage.md) | How AI coding tools were used in this build |
+| [`docs/test_prompts.md`](docs/test_prompts.md) | 8 verified prompts covering every core capability |
 
 ---
 
