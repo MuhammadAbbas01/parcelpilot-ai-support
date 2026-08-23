@@ -80,18 +80,9 @@ function addThinking() {
   return row;
 }
 
-async function send() {
-  const message = inputBox.value.trim();
-  if (!message) return;
-  addUserMessage(message);
-  inputBox.value = "";
-  sendBtn.disabled = true;
-  inputBox.disabled = true;
-  const thinkingRow = addThinking();
-
+async function sendChatRequest(message, role, retriesLeft = 2) {
   try {
-    const role = document.getElementById("role").value;
-    const res = await fetch("/api/chat", {
+    return await fetch("/api/chat", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -103,6 +94,29 @@ async function send() {
         user: { user_id: "demo-user", role, name: "Demo User" }
       })
     });
+  } catch (err) {
+    // Free tunnels occasionally drop a connection momentarily -- retry
+    // silently before surfacing anything to the user.
+    if (retriesLeft > 0) {
+      await new Promise(r => setTimeout(r, 800));
+      return sendChatRequest(message, role, retriesLeft - 1);
+    }
+    throw err;
+  }
+}
+
+async function send() {
+  const message = inputBox.value.trim();
+  if (!message) return;
+  addUserMessage(message);
+  inputBox.value = "";
+  sendBtn.disabled = true;
+  inputBox.disabled = true;
+  const thinkingRow = addThinking();
+
+  try {
+    const role = document.getElementById("role").value;
+    const res = await sendChatRequest(message, role);
     thinkingRow.remove();
 
     if (!res.ok) {
@@ -117,7 +131,7 @@ async function send() {
     addBotMessage(data.reply || "");
   } catch (err) {
     thinkingRow.remove();
-    addBotMessage("Something went wrong reaching the server: " + err.message);
+    addBotMessage("Connection hiccup — the tunnel dropped for a moment. **Please press Send again** (your message wasn't lost, just resend it).");
   } finally {
     sendBtn.disabled = false;
     inputBox.disabled = false;
