@@ -10,26 +10,26 @@
 [![Groq](https://img.shields.io/badge/LLM-Groq%20%7C%20gpt--oss--120b-F55036)](https://groq.com/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
-### 🔗 [**Live Demo**](https://extraversive-intendedly-nathalie.ngrok-free.dev) · [**Test Prompts**](docs/test_prompts.md) · [**Architecture Notes**](docs/architecture_note.md)
+### [Live Demo](https://extraversive-intendedly-nathalie.ngrok-free.dev) · [Test Prompts](docs/test_prompts.md) · [Architecture Notes](docs/architecture_note.md)
 
 </div>
 
 <br>
 
-> **TL;DR** — Contracts override policy. Policy overrides product docs.
-> Deprecated docs get ignored automatically. None of that is a prompt
-> instruction the model *might* follow — it's enforced in code, so it
-> can't drift. That's the whole point of this repo.
+> **Summary:** Contracts override policy, policy overrides product
+> docs, and deprecated documents are excluded automatically. This is
+> enforced in code rather than left as a prompt instruction the model
+> might not follow consistently.
 
 <br>
 
-## 🎯 The problem, in three lines
+## The problem, in three lines
 
 - ParcelPilot's support team answers questions using **4 kinds of sources that disagree**: signed contracts, general policy, product docs, live tickets.
 - A naive chatbot picks whichever source it finds first — and gives a **confidently wrong answer**.
 - For a support tool, a wrong-but-confident answer is worse than no tool at all.
 
-## 🛠 What I built
+## What I built
 
 - An agent that reasons across **contracts → policy → product docs → live data**, in that priority order — enforced by code, not prompting.
 - **Access control inside the tools**, not the prompt — a jailbreak attempt still can't reach data it shouldn't.
@@ -38,36 +38,7 @@
 
 <br>
 
-## ✅ Proof, not claims
-
-<table>
-<tr><td width="50%" valign="top">
-
-**Real question, real answer**
-
-*"Can Northstar cancel ORD-1001 without a fee?"*
-
-🔧 `get_order` → 🔧 `get_account` → 🔧 `search_documents`
-
-**Yes** — contract waives it, overriding the SOP's usual ₹250 fee.
-Full unedited transcript in the section right below.
-
-</td><td width="50%" valign="top">
-
-**Real bug, actually found & fixed**
-
-Groq rejected a `null` optional param → live 500 error while
-testing.
-
-Reproduced → fixed the schema → re-verified against the running
-server. See commit `88f6061`.
-
-</td></tr>
-</table>
-
-<br>
-
-## 📜 See it work
+## See it work
 
 <details>
 <summary><b>Click to expand the full, unedited exchange</b></summary>
@@ -94,14 +65,20 @@ not apply.
 
 </details>
 
-Seven more scenarios like this — including one built specifically to
-try to fool the agent with an outdated policy — are in
-[`docs/test_prompts.md`](docs/test_prompts.md). Try them yourself
-against the live demo.
+Seven more scenarios like this — including one built to test whether
+the agent can be misled by an outdated policy document — are in
+[`docs/test_prompts.md`](docs/test_prompts.md). They can be tried
+directly against the live demo.
+
+During testing, this same verification process caught a real bug: the
+Groq API rejected the model passing `null` for an optional parameter,
+which caused a 500 error on a specific query type. It was reproduced,
+fixed by widening the parameter's schema type, and re-verified against
+the running server (commit `88f6061`).
 
 <br>
 
-## 🧠 Decisions that matter (and the trade-off I accepted for each)
+## Decisions that matter, and the trade-off accepted for each
 
 | Decision | Why | Trade-off |
 |---|---|---|
@@ -116,7 +93,7 @@ Full reasoning for each → [`docs/architecture_note.md`](docs/architecture_note
 
 <br>
 
-## 🏗 Architecture
+## Architecture
 
 ```mermaid
 flowchart TD
@@ -146,7 +123,7 @@ every dashboard page load.
 
 <br>
 
-## ✅ Capabilities checklist
+## Capabilities checklist
 
 | Requirement | Where |
 |---|---|
@@ -162,7 +139,7 @@ every dashboard page load.
 
 <br>
 
-## 🚀 Quick start
+## Quick start
 
 ```bash
 git clone https://github.com/MuhammadAbbas01/parcelpilot-ai-support.git
@@ -191,7 +168,7 @@ download step needed.
 
 <br>
 
-## 🌐 Why the demo is a tunnel, not a cloud deployment
+## Why the demo is a tunnel, not a cloud deployment
 
 Every major free Docker/FastAPI host closed its doors in 2026:
 
@@ -208,7 +185,7 @@ Full reasoning → [`docs/product_note.md`](docs/product_note.md)
 
 <br>
 
-## 📁 Project structure
+## Project structure
 
 ```
 backend/
@@ -228,7 +205,7 @@ data_pack/   Supplied synthetic assessment data
 
 <br>
 
-## 📋 Documentation
+## Documentation
 
 | Doc | Covers |
 |---|---|
