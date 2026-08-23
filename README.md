@@ -10,21 +10,35 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
 **Live demo:** https://extraversive-intendedly-nathalie.ngrok-free.dev
-**Test prompts:** [`docs/test_prompts.md`](docs/test_prompts.md)
+**Test it yourself:** [`docs/test_prompts.md`](docs/test_prompts.md)
 
 </div>
 
 ---
 
-## Overview
+## The problem
 
-ParcelPilot is a B2B logistics platform. Its support team fields
-questions that require reasoning across signed customer contracts,
-support policy, product known-issues, and live order/ticket data —
-sources that sometimes disagree with each other. This agent answers
-those questions correctly by treating source authority as structured
-data rather than something the model has to infer from a prompt, and
-it refuses to guess when the sources don't cover a case.
+ParcelPilot is a B2B logistics platform. Its 20-person support team
+fields hundreds of weekly requests that require cross-referencing
+signed customer contracts, general support policy, product
+known-issues, and live order/ticket data — sources that don't always
+agree. A customer-specific contract can override a standard policy. An
+old policy document can still be sitting in the shared drive next to
+the current one. Past ticket resolutions in the system are sometimes
+just wrong. A naive chatbot bolted onto this data would confidently
+give incorrect answers — which, for a support tool, is worse than not
+having one at all.
+
+## What I built
+
+An internal ops agent that treats **source authority as structured
+data, not a prompt suggestion**, and that **refuses to guess** when no
+source covers a case. It reasons across contracts, policy, product
+docs, and live data through a set of tools with access control and
+conflict-resolution logic enforced in code — not left to the model's
+discretion. A rule-based dashboard on top of the same data proactively
+surfaces SLA risk and multi-customer issue patterns before a human has
+to go looking for them.
 
 ## See it work — a real, verified exchange
 
@@ -57,19 +71,45 @@ whether it can be fooled by an outdated document — are in
 [`docs/test_prompts.md`](docs/test_prompts.md); try them yourself
 against the live demo.
 
-## What makes this more than a wrapper
+## Engineering decisions and why I made them
 
-- **Authority is enforced in code, not suggested in a prompt.**
-  Documents are ranked (`contract` > `policy`/`sop` > `product_doc`)
-  and deprecated documents are excluded from retrieval entirely — the
-  model cannot cite them even if it tried.
-- **Access control lives in the tool layer.** Role checks run inside
-  the tool functions themselves, so a prompt-injection attempt still
-  can't reach data it shouldn't reach.
-- **State-changing actions are structurally two-phase.**
-  `propose_action` computes what would happen and returns a one-time
-  token; `execute_action` requires that exact token. There's no code
-  path that skips confirmation.
+Anyone can wire an LLM to some functions and call it an "agent." The
+decisions below are what actually make this one trustworthy, and each
+came with a real trade-off I chose deliberately rather than by default.
+
+| Decision | Why | Trade-off accepted |
+|---|---|---|
+| **Authority ranking lives in the data layer**, not the prompt. Documents carry a rank (`contract` > `policy`/`sop` > `product_doc`); deprecated docs are excluded from retrieval entirely. | A prompt instruction ("prefer contracts") is a *suggestion* the model can drift from over a long conversation. A filtered, ranked list is a *guarantee* — the model literally cannot retrieve or cite what isn't returned. | More upfront tagging work per document; doesn't scale past a few dozen docs without moving to metadata-filtered vector search. |
+| **Access control checks run inside the tool functions**, not just implied by the system prompt. | If a role check only exists as prompt text, a well-crafted injection can talk the model past it. A check inside `structured_data.py` has no such attack surface — the model can *ask* for anything, but the function decides what comes back. | More boilerplate in every tool function; a system prompt-only approach would have been faster to write. |
+| **State-changing actions are structurally two-phase** (`propose_action` returns a token; `execute_action` requires it). | "Ask for confirmation" as an instruction can be skipped by the model under the right pressure. A token the model doesn't control and can't fabricate makes the skip *impossible*, not just discouraged. | An extra round-trip on every action; slightly more friction for the user, judged worth it for anything that writes data. |
+| **Keyword search, not a vector index**, for the document tool. | The real pack is 6 one-page PDFs. An embedding pipeline adds latency and infra for zero retrieval-quality gain at this size. | Wouldn't scale past roughly a few dozen pages — noted explicitly rather than silently ignored; the retrieval function's interface doesn't change if swapped later. |
+| **In-memory sessions**, no database. | Right-sized for a single-instance demo; a database is infrastructure the assessment doesn't need yet. | History resets on restart; not multi-instance safe. Documented, not hidden. |
+| **Internal-only, not customer-facing.** | The brief allows either. Going deep on one context (plus the proactive-detection bonus) beats building both shallowly in the time available. | No customer-scoped chatbot in this submission — though the same tool layer supports one with account-scoped instead of role-scoped access. |
+
+Full write-up of each, including what I'd change for production, is in
+[`docs/architecture_note.md`](docs/architecture_note.md) and
+[`docs/product_note.md`](docs/product_note.md).
+
+## Tested against real failure modes, not just the happy path
+
+- **Found and fixed a real bug during verification**: Groq's strict
+  tool-schema validation rejected the model passing `null` for an
+  optional parameter, which crashed a specific query type with a
+  500 error. Caught by actually running the deprecated-policy test
+  case, reproduced, fixed by widening the schema type, then
+  re-verified against the live server. See the commit history for the
+  full before/after.
+- **Confirm-before-action was tested as two separate HTTP calls**, not
+  assumed correct from reading the code: turn one proposes and
+  returns a token without writing anything; turn two, only after an
+  explicit "yes," executes. Verified via the actual API responses,
+  not just visual inspection of the chat.
+- **The deprecated-document trap was deliberately built to try to fool
+  the agent** — asking it to apply the outdated v2 policy — and
+  verified it correctly refuses and cites v3 instead. This and 7
+  other adversarial-ish scenarios are documented, with expected
+  behavior stated *before* running them, in
+  [`docs/test_prompts.md`](docs/test_prompts.md).
 
 ## Architecture
 
@@ -100,7 +140,7 @@ flowchart TD
 deterministic, rule-based pass over the same underlying data — so the
 proactive issue dashboard doesn't spend an LLM call on every page load.
 
-## What's included
+## Capabilities checklist
 
 | Assessment requirement | Where it lives |
 |---|---|
@@ -148,35 +188,16 @@ in a second terminal (free ngrok account, no card).
 
 The live demo link above is an **ngrok tunnel to the app running
 locally**, not a persistent cloud deployment. That's a deliberate
-trade-off: as of mid-2026, every major free-tier host for a
-Docker/FastAPI backend has closed its doors — Hugging Face Spaces now
-requires a PRO subscription for Docker, Render's free tier asks new
-accounts for card verification despite its own marketing, Koyeb
-closed free signups after its February 2026 acquisition by Mistral
-AI, and Fly.io dropped its free tier back in 2024. Rather than put a
-card on file for a hiring-assessment side project, the app runs
+trade-off, not an oversight: as of mid-2026, every major free-tier
+host for a Docker/FastAPI backend has closed its doors — Hugging Face
+Spaces now requires a PRO subscription for Docker, Render's free tier
+asks new accounts for card verification despite its own marketing,
+Koyeb closed free signups after its February 2026 acquisition by
+Mistral AI, and Fly.io dropped its free tier back in 2024. Rather than
+put a card on file for a hiring-assessment side project, the app runs
 locally behind a free tunnel — genuinely live, genuinely free, with
 the honest trade-off that it's only reachable while the tunnel process
 is running. Full reasoning in [`docs/product_note.md`](docs/product_note.md).
-
-## Design decisions
-
-- **Keyword search, not a vector index**, for the 6 short (one-page)
-  PDFs — right-sized for the scale. The authority-ranking logic sits
-  around the retrieval call, so swapping in embeddings later is a
-  one-function change, not a redesign.
-- **"Business hours/days" simplified to flat hour counts** in SLA and
-  cluster calculations — a documented gap for production use, not an
-  oversight.
-- **In-memory sessions** — conversation history resets on restart;
-  the right call for a demo, not for production.
-- **Internal-only, not customer-facing** — a deliberate depth-over-
-  breadth choice. The same tool layer would support a customer-facing
-  agent with account-scoped access instead of role-scoped access.
-
-Full reasoning for each of these is in
-[`docs/architecture_note.md`](docs/architecture_note.md) and
-[`docs/product_note.md`](docs/product_note.md).
 
 ## Project structure
 
