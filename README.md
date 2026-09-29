@@ -8,6 +8,7 @@
 [![Python](https://img.shields.io/badge/python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Groq](https://img.shields.io/badge/LLM-Groq%20%7C%20gpt--oss--120b-F55036)](https://groq.com/)
+[![CI](https://github.com/MuhammadAbbas01/parcelpilot-ai-support/actions/workflows/ci.yml/badge.svg)](https://github.com/MuhammadAbbas01/parcelpilot-ai-support/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
 ### [Live Demo](https://extraversive-intendedly-nathalie.ngrok-free.dev) · [Test Prompts](docs/test_prompts.md) · [Architecture Notes](docs/architecture_note.md)
@@ -183,6 +184,17 @@ Rather than put a card on file for a hiring assessment, the app runs
 locally behind a free ngrok tunnel — genuinely live, genuinely free.
 Full reasoning → [`docs/product_note.md`](docs/product_note.md)
 
+**CI and containerization are real, not decorative:** every push runs
+a [GitHub Actions pipeline](.github/workflows/ci.yml) that builds the
+actual Docker image, runs it, waits for a real health check, and runs
+the integration test suite against the live container — see the CI
+badge above. `k8s/` contains reference Kubernetes manifests
+(Deployment + Service) for how this would run on a cluster in
+production; they are not currently deployed to a live cluster, for the
+same free-tier reasons described above — see
+[`k8s/README.md`](k8s/README.md) for exact commands to run them
+yourself against `minikube` or `kind`.
+
 <br>
 
 ## Project structure
@@ -201,6 +213,8 @@ backend/
 frontend/    Chat UI + dashboard (markdown-rendered, live tool trace)
 docs/        Architecture note, product note, test prompts, AI usage
 data_pack/   Supplied synthetic assessment data
+k8s/         Reference Kubernetes manifests (not live-deployed)
+test_main.py Integration tests run against the real container in CI
 ```
 
 <br>

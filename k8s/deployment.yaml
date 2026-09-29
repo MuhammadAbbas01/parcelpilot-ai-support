@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parcelpilot-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: parcelpilot
+  template:
+    metadata:
+      labels:
+        app: parcelpilot
+    spec:
+      containers:
+      - name: parcelpilot
+        image: parcelpilot-ai-support:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - secretRef:
+            name: parcelpilot-secrets
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
